@@ -125,34 +125,32 @@
             <p id="dateRange">Year-to-Date Progress</p>
         </div>
         
-        <div class="metrics-grid" id="metricsGrid">
-            <!-- Summary cards will be generated here -->
-        </div>
+        <div class="metrics-grid" id="metricsGrid"></div>
         
         <div class="charts-grid">
             <div class="chart-card">
-                <div class="chart-title" id="fundingTitle">Partner Funding Secured</div>
+                <div class="chart-title">Partner Funding Secured</div>
                 <div class="chart-container">
                     <canvas id="fundingChart"></canvas>
                 </div>
             </div>
             
             <div class="chart-card">
-                <div class="chart-title" id="aceCreatedTitle">ACE Created</div>
+                <div class="chart-title">ACE Created</div>
                 <div class="chart-container">
                     <canvas id="aceCreatedChart"></canvas>
                 </div>
             </div>
             
             <div class="chart-card">
-                <div class="chart-title" id="aceLaunchedTitle">ACE Launched</div>
+                <div class="chart-title">ACE Launched</div>
                 <div class="chart-container">
                     <canvas id="aceLaunchedChart"></canvas>
                 </div>
             </div>
             
             <div class="chart-card">
-                <div class="chart-title" id="revenueTitle">AWS ARR Influenced</div>
+                <div class="chart-title">AWS ARR Influenced</div>
                 <div class="chart-container">
                     <canvas id="revenueChart"></canvas>
                 </div>
@@ -161,9 +159,6 @@
     </div>
     
     <script>
-        // ============================================
-        // DATA CONFIGURATION - UPDATE THIS SECTION MONTHLY
-        // ============================================
         const dashboardData = {
             months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
             
@@ -196,9 +191,6 @@
             }
         };
         
-        // ============================================
-        // HELPER FUNCTIONS - NO NEED TO MODIFY
-        // ============================================
         function formatCurrency(value) {
             if (value >= 1000000) {
                 return '$' + (value / 1000000).toFixed(2) + 'M';
@@ -220,25 +212,19 @@
             return Math.round((current / target) * 100);
         }
         
-        function createSummaryCard(metric, isCurrency = false) {
+        function createSummaryCard(metric, isCurrency) {
             const latestValue = getLatestValue(metric.data);
             const percentage = getPercentageOfGoal(latestValue, metric.target);
             const formattedValue = isCurrency ? formatCurrency(latestValue) : formatNumber(latestValue);
             const formattedTarget = isCurrency ? formatCurrency(metric.target) : formatNumber(metric.target);
             const latestMonth = dashboardData.months[dashboardData.months.length - 1];
             
-            return `
-                <div class="metric-card">
-                    <div class="metric-title">${metric.title}</div>
-                    <div class="metric-value">${formattedValue}</div>
-                    <div class="metric-subtitle">${percentage}% of ${formattedTarget} goal (as of ${latestMonth})</div>
-                </div>
-            `;
+            return '<div class="metric-card"><div class="metric-title">' + metric.title + 
+                   '</div><div class="metric-value">' + formattedValue + 
+                   '</div><div class="metric-subtitle">' + percentage + '% of ' + formattedTarget + 
+                   ' goal (as of ' + latestMonth + ')</div></div>';
         }
         
-        // ============================================
-        // GENERATE SUMMARY CARDS
-        // ============================================
         const metricsGrid = document.getElementById('metricsGrid');
         metricsGrid.innerHTML = 
             createSummaryCard(dashboardData.partnerFunding, true) +
@@ -246,13 +232,9 @@
             createSummaryCard(dashboardData.aceLaunched, false) +
             createSummaryCard(dashboardData.awsRevenue, true);
         
-        // Update date range
         document.getElementById('dateRange').textContent = 
-            `Year-to-Date Progress Through ${dashboardData.months[dashboardData.months.length - 1]}`;
+            'Year-to-Date Progress Through ' + dashboardData.months[dashboardData.months.length - 1];
         
-        // ============================================
-        // CHART CONFIGURATION - NO NEED TO MODIFY
-        // ============================================
         const chartConfig = {
             responsive: true,
             maintainAspectRatio: false,
@@ -284,10 +266,29 @@
             }
         };
         
-        function createChart(canvasId, metric, color, isCurrency = false) {
-            const targetArray = Array(dashboardData.months.length).fill(metric.target);
+        function createChart(canvasId, metric, color, isCurrency) {
+            const targetArray = [];
+            for (let i = 0; i < dashboardData.months.length; i++) {
+                targetArray.push(metric.target);
+            }
             
-            const config = {
+            const options = JSON.parse(JSON.stringify(chartConfig));
+            
+            if (isCurrency) {
+                options.scales.y.ticks = {
+                    callback: function(value) {
+                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                    }
+                };
+            } else {
+                options.scales.y.ticks = {
+                    callback: function(value) {
+                        return value.toLocaleString();
+                    }
+                };
+            }
+            
+            new Chart(document.getElementById(canvasId), {
                 type: 'line',
                 data: {
                     labels: dashboardData.months,
@@ -312,23 +313,10 @@
                         pointHoverRadius: 0
                     }]
                 },
-                options: { ...chartConfig }
-            };
-            
-            if (isCurrency) {
-                config.options.scales.y.ticks = {
-                    callback: function(value) {
-                        return '$' + (value / 1000000).toFixed(1) + 'M';
-                    }
-                };
-            }
-            
-            return new Chart(document.getElementById(canvasId), config);
+                options: options
+            });
         }
         
-        // ============================================
-        // CREATE ALL CHARTS
-        // ============================================
         createChart('fundingChart', dashboardData.partnerFunding, '#667eea', true);
         createChart('aceCreatedChart', dashboardData.aceCreated, '#f093fb', false);
         createChart('aceLaunchedChart', dashboardData.aceLaunched, '#4facfe', false);
